@@ -1,0 +1,115 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id String @id @default(uuid())
+  name String
+  email String @unique
+  password String
+  role UserRole 
+  needPasswordChange Boolean @default(true)
+  status UserStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+  profile Profile?
+  sentFollowRequests     FollowRequest[] @relation("SentFollowRequests")
+  receivedFollowRequests FollowRequest[] @relation("ReceivedFollowRequests")
+  posts                Post[]         @relation("UserPosts")
+  Comment Comment[]
+
+  @@map("users")
+
+}
+
+model Profile {
+  id String @id @default(uuid())
+  name String
+  email String @unique
+  bio String?
+  profilePhoto String?
+  coverPhoto String?
+  address String?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+  user User @relation(fields: [email], references: [email])
+
+  @@map("profiles")
+}
+
+model FollowRequest {
+  id         String       @id @default(uuid())
+  senderId   String
+  sender     User         @relation("SentFollowRequests", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User         @relation("ReceivedFollowRequests", fields: [receiverId], references: [id])
+  status     RequestStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+  updateAt DateTime @updatedAt
+
+  @@map("followrequest")
+
+}
+
+
+model Post {
+  id          String       @id @default(uuid())
+  title       String
+  text        String
+  link        String?
+  photo       String[] @default([""])
+  video       String?
+  likes       Json         @default("{}")
+  status      RequestStatus @default(PENDING)
+  isDelete    Boolean @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  authorId    String
+  author      User         @relation("UserPosts", fields: [authorId], references: [id])
+  comment    Comment[]
+
+  @@map("posts")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  authorId  String
+  author    User   @relation(fields: [authorId], references: [id])
+  blogId    String
+  blog      Post     @relation(fields: [blogId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("comments")
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  DELETED
+}
+enum UserRole {
+  SUPPER_ADMIN
+  ADMIN
+  USER
+} 
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
